@@ -3,7 +3,7 @@ include '../inc/init.inc.php';
 include '../inc/fonction.inc.php';
 
 if(!user_is_admin()) {
-	header('location:'.URL.'connexion.php');
+    header('location:'.URL.'connexion.php');
 	exit(); //bloque l'execution du code de la page
 }
 
@@ -57,9 +57,46 @@ if(
         if($verif_reference->rowCount() > 0) {
             $msg .= '<div class="alert alert-danger mt-3">Atention référence indisponible, car déja attribuée.</div>';            
         } else {
+            // vérification du format de l'image, formats acceptés : jpeg, jpg, png, gif.
+            // es-c qu'une image a été postée
+            if(!empty($_FILES['photo']['name'])){
+                // on, vérifie le format de l'image en récupérant son extension
+                $extension = strrchr($_FILES['photo']['name'], '.');
+                // strrchr() découpe une chaîne fournie en premier argument en partant de la fin.
+                // On remonte jusqu'au caractère fourni en deuxième argument et on récupère tout depuis ce caractère.
+                // exemple strrchr('image.png','.'); +> on récupère .png
+                // vd($extension);
+                
+                // on enlève le point et on passe l'extension en minuscule pour pouvoir la comparer.
+                $extension = strtolower(substr($extension, 1));
+                // exemple : .PNG => png   .Jpeg => jpeg
+                
+                // on déclare un tableau array contenant les extensions autorisées:
+                $tab_extension_valide = array('png', 'gif', 'jpg', 'jpeg');
+                
+                // in_array(ce_quon_cherche, tableau_ou_on_cherche);
+                // in_array() renvoie true si le premier argument correspond à une des valeurs présentes dans le tableau array fourni en argument. Sinon false.
+                $verif_extension = in_array($extension, $tab_extension_valide);
+                
+                if($verif_extension) {
+                    
+                    // pour ne pas écraser un image du meme nom, on renomme l'image en rajoutant le référence qui est une information unique
+                    $nom_photo = $reference .'-'.$_FILES['photo']['name'];
 
+                    // on prepare le chemin ou on va enregistrer l'image
+                    $photo_dossier = SERVER_ROOT . SITE_ROOT . 'img/' . $nom_photo;
+                    // vd($photo_dossier);
+
+                    // copy(); permet de copier un fichier depuis un emplacement fourni en premier argument vers un emplacement fourni en deuxieme.
+                    copy($_FILES['photo']['tmp_name'], $photo_dossier); 
+
+                } else {
+                    $msg .= '<div class="alert alert-danger mt-3">Atention le format de la phot est invalide, extension autorisées : jpg, jpeg, png, gif.</div>';           
+                }
+            }
         }
-
+// vd($_POST);
+// vd($_FILES);
 /**********************************************************
  * ********************************************************
  *  \ ENREGISTREMENT DES ARTICLES *************************
@@ -69,7 +106,7 @@ if(
 ?>
 
 <div class="starter-template">
-    <h1><i class="fas fa-ghost" style="color: #4c6ef5;"></i> Template <i class="fas fa-ghost"
+    <h1><i class="fas fa-ghost" style="color: #4c6ef5;"></i> Gestion articles <i class="fas fa-ghost"
             style="color: #4c6ef5;"></i></h1>
     <p class="lead"><?php echo $msg ?>Lorem ipsum</p>
 </div>
