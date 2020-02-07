@@ -7,9 +7,28 @@ if(!user_is_admin()) {
 	exit(); //bloque l'execution du code de la page
 }
 
+/**********************************************************
+ * ********************************************************
+ *  \ SUPPRESSION D'UN ARTICLE ****************************
+ * ********************************************************
+ *********************************************************/
+if(isset($_GET['action']) && $_GET['action'] == 'supprimer' && !empty($_GET['id_article'])) {
+    $suppression = $pdo->prepare("DELETE FROM article WHERE id_article = :id_article");
+    $suppression->bindParam(":id_article", $_GET['id_article'], PDO::PARAM_STR);
+    $suppression->execute();
+
+    $_GET['action'] = 'affichage'; // pour provoquer l'affichege des articles
+}
+/**********************************************************
+ **********************************************************
+ *  \ FIN DE SUPPRESSION D'UN ARTICLE *********************
+ **********************************************************
+ *********************************************************/
+
 include '../inc/header.inc.php';
 include '../inc/nav.inc.php';
 
+$id_article = ''; // pour la modification
 $reference = '';
 $titre = '';
 $categorie = '';
@@ -21,6 +40,41 @@ $photo = '';
 $prix = '';
 $stock = '';
 $photo_bdd ='';
+
+/********************************************************************
+ * ******************************************************************
+ *  \ MODIFICATION  RECUPERATION DES INFOS DE L'ARTICLE EN BDD ******
+ * ******************************************************************
+ *******************************************************************/
+
+if(isset($_GET['action']) && $_GET['action'] == 'modifier' && !empty($_GET['id_article'])) {
+    $infos_article = $pdo->prepare("SELECT * FROM article WHERE id_article = :id_article");
+    $infos_article->bindParam(":id_article", $_GET['id_article'], PDO::PARAM_STR);
+    $infos_article->execute();
+
+    if($infos_article->rowCount() > 0){
+        $article_actuel = $infos_article->fetch(PDO::FETCH_ASSOC);
+
+        $id_article = $article_actuel['id_article'];
+        $reference = $article_actuel['reference'];
+        $titre = $article_actuel['titre'];
+        $categorie = $article_actuel['categorie'];
+        $couleur = $article_actuel['couleur'];
+        $taille = $article_actuel['taille'];
+        $description = $article_actuel['description'];
+        $sexe = $article_actuel['sexe'];
+        $photo = $article_actuel['photo'];
+        $prix = $article_actuel['prix'];
+        $stock = $article_actuel['stock'];
+        $photo_actuelle = $article_actuel['photo'];
+    }
+}
+
+ /********************************************************************
+ * *******************************************************************
+ *  \ FIN MODIFICATION  RECUPERATION DES INFOS DE L'ARTICLE EN BDD ***
+ * *******************************************************************
+ ********************************************************************/
 
 /**********************************************************
  * ********************************************************
@@ -115,7 +169,7 @@ if(
             $enregistrement->bindParam(":description", $description, PDO::PARAM_STR);
             $enregistrement->bindParam(":sexe", $sexe, PDO::PARAM_STR);
             $enregistrement->bindParam(":prix", $prix, PDO::PARAM_STR);
-            $enregistrement->bindParam(":stock", $reference, PDO::PARAM_STR);
+            $enregistrement->bindParam(":stock", $stock, PDO::PARAM_STR);
             $enregistrement->bindParam(":reference", $reference, PDO::PARAM_STR);
             $enregistrement->bindParam(":photo", $photo_bdd, PDO::PARAM_STR);
             $enregistrement->execute();
@@ -208,7 +262,7 @@ if(
         /******************************************/
 
         // on affiche le form si l'utilisateur a cliqué sur le bouton ajout article 
-        if(isset($_GET['action']) && $_GET['action'] == "ajouter") {
+        if(isset($_GET['action']) && ($_GET['action'] == "ajouter" || $_GET['action'] == "modifier")) {
     ?>
         <form action="" method="POST" enctype="multipart/form-data">
             <div class="row">
@@ -225,7 +279,7 @@ if(
                     <div class="form-group">
                         <label for="description">Description</label>
                         <textarea name="description" id="description"
-                            class="form-control"value="<?php echo $description; ?>" ></textarea>
+                            class="form-control" ><?php echo $description; ?></textarea>
                     </div>
                     <div class="form-group">
                         <label for="categorie">Categorie</label>
