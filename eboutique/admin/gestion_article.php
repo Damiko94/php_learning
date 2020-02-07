@@ -46,12 +46,19 @@ if(
         $description = trim($_POST['description']);
         $sexe =trim($_POST['sexe']);
         $prix = trim($_POST['prix']);
-        $stock = trim($_POST['stock']);}
+        $stock = trim($_POST['stock']);
 
         // controle sur la reference car elle est unique en BDD
         $verif_reference = $pdo->prepare("SELECT * FROM article WHERE reference = :reference");
         $verif_reference->bindParam(':reference', $reference, PDO::PARAM_STR);
         $verif_reference->execute();
+
+        if(empty($prix) || !is_numeric($prix)){
+            $msg .= '<div class="alert alert-danger mt-3">Atention le prix est obligatoire et doit etre numérique.</div>';
+        }
+        if(empty($stock) || !is_numeric($stock)){
+            $msg .= '<div class="alert alert-danger mt-3">Atention le stocks est obligatoire et doit etre numérique.</div>';
+        }
 
         // si on a une ligne, alors la reference existe en BDD
         if($verif_reference->rowCount() > 0) {
@@ -82,6 +89,9 @@ if(
                     
                     // pour ne pas écraser un image du meme nom, on renomme l'image en rajoutant le référence qui est une information unique
                     $nom_photo = $reference .'-'.$_FILES['photo']['name'];
+                    
+                    $photo_bdd = $nom_photo; // represente l'insertion en BDD
+
 
                     // on prepare le chemin ou on va enregistrer l'image
                     $photo_dossier = SERVER_ROOT . SITE_ROOT . 'img/' . $nom_photo;
@@ -95,11 +105,27 @@ if(
                 }
             }
         }
+        // on peut déclencher l'enregistrement s'il y n'y a pas eu d'erreur dans les traitements précédents
+        if(empty($msg)){
+            $enregistrement = $pdo->prepare("INSERT INTO article (reference, titre, categorie, couleur, taille, description, sexe, prix, stock, photo) VALUES (:reference, :titre, :categorie, :couleur, :taille, :description, :sexe, :prix, :stock, :photo) ");
+            $enregistrement->bindParam(":titre", $titre, PDO::PARAM_STR);
+            $enregistrement->bindParam(":categorie", $categorie, PDO::PARAM_STR);
+            $enregistrement->bindParam(":couleur", $couleur, PDO::PARAM_STR);
+            $enregistrement->bindParam(":taille", $taille, PDO::PARAM_STR);
+            $enregistrement->bindParam(":description", $description, PDO::PARAM_STR);
+            $enregistrement->bindParam(":sexe", $sexe, PDO::PARAM_STR);
+            $enregistrement->bindParam(":prix", $prix, PDO::PARAM_STR);
+            $enregistrement->bindParam(":stock", $reference, PDO::PARAM_STR);
+            $enregistrement->bindParam(":reference", $reference, PDO::PARAM_STR);
+            $enregistrement->bindParam(":photo", $photo_bdd, PDO::PARAM_STR);
+            $enregistrement->execute();
+        } 
+}
 // vd($_POST);
 // vd($_FILES);
 /**********************************************************
  * ********************************************************
- *  \ ENREGISTREMENT DES ARTICLES *************************
+ *  \  FIN ENREGISTREMENT DES ARTICLES *************************
  * ********************************************************
  *********************************************************/
 
@@ -108,11 +134,82 @@ if(
 <div class="starter-template">
     <h1><i class="fas fa-ghost" style="color: #4c6ef5;"></i> Gestion articles <i class="fas fa-ghost"
             style="color: #4c6ef5;"></i></h1>
-    <p class="lead"><?php echo $msg ?>Lorem ipsum</p>
+    <p class="lead"><?php echo $msg ?></p>
+    <p class="text-center">
+        <a href="?action=ajouter" class="btn btn-outline-danger">Ajout article</a>
+        <a href="?action=affichage" class="btn btn-outline-primary">Affichage article</a>
+    </p>
 </div>
 
 <div class="row">
     <div class="col-12">
+
+    <?php
+        /*************************************/
+        /* AFFICHAGE DES ARTICLES
+        / ************************************/
+
+        if(isset($_GET['action']) && $_GET['action'] == "affichage") {
+            // on recupere les articles en BDD
+            $liste_article = $pdo->query("SELECT * FROM article");
+            echo '<p>Nombre d\'article : <b>' . $liste_article->rowCount() .'</p>';
+
+            echo '<div class="table-responsive">';
+            echo '<table class="table table-bordered">';
+            echo '<tr>';
+            echo '<th>Id Article</th>';
+            echo '<th>Reference</th>';
+            echo '<th>Catégories</th>';
+            echo '<th>Titre</th>';
+            echo '<th>Description</th>';
+            echo '<th>Couleur</th>';
+            echo '<th>Taille</th>';
+            echo '<th>Sexe</th>';
+            echo '<th>Photo</th>';
+            echo '<th>Prix</th>';
+            echo '<th>Stock</th>';
+            echo '<th>Modif</th>';
+            echo '<th>Suppr</th>';
+            echo '</tr>';
+
+            while($article = $liste_article->fetch(PDO::FETCH_ASSOC)) {
+                echo'<tr>';
+                echo '<td>'. $article['id_article'] . '</td>';
+                echo '<td>'. $article['reference'] . '</td>';
+                echo '<td>'. $article['categorie'] . '</td>';
+                echo '<td>'. $article['titre'] . '</td>';
+                echo '<td>'. substr($article['description'],0 ,14) . '...</td>';
+                echo '<td>'. $article['couleur'] . '</td>';
+                echo '<td>'. $article['taille'] . '</td>';
+                echo '<td>'. $article['sexe'] . '</td>';
+                echo '<td><img src="'. URL . 'img/' . $article['photo'] . '" class="img-thumbnail" width="140"</td>';
+                echo '<td>'. $article['prix'] . '</td>';
+                echo '<td>'. $article['stock'] . '</td>';
+
+                echo '<td><a href="?action=modifier&id_article='. $article['id_article'] . '" class="btn btn-warning"><i class="fas fa-pen-nib"></i></a></td>';
+                echo '<td><a href="?action=supprimer&id_article='. $article['id_article'] . '" class="btn btn-danger" onclick="return(confirm(\'Etes-vous sûr ?\'))"><i class="fas fa-minus-square"></i></a></td>';
+                
+                echo'</tr>';
+            }
+
+            echo '</table>';
+            echo '</div>';
+        }
+
+        /*************************************/
+        /* AFFICHAGE DES ARTICLES
+        / ************************************/
+
+
+        /************************************ */
+        /*************************************** */
+        // FORMULAIRE D'AJOUT D'ARTICLE
+        /******************************************/
+        /******************************************/
+
+        // on affiche le form si l'utilisateur a cliqué sur le bouton ajout article 
+        if(isset($_GET['action']) && $_GET['action'] == "ajouter") {
+    ?>
         <form action="" method="POST" enctype="multipart/form-data">
             <div class="row">
                 <div class="col-6">
@@ -194,6 +291,9 @@ if(
                 </div>
             </div>
         </form>
+        <?php
+        } // fin du if(isset($_GET['action']) && $_GET['action'] == "ajouter")
+        ?>
     </div>
 </div>
 
