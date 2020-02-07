@@ -17,4 +17,9 @@ $msg = "";
 session_start();
 
 // déclaration d'une constante
+// URL racine du projet
 define ('URL', 'http://php/eboutique/');
+// chemin racine du server
+define('SERVER_ROOT', $_SERVER['DOCUMENT_ROOT']);
+// chemin racine du dossier du site
+define('SITE_ROOT', '/eboutique/');
